@@ -1,4 +1,6 @@
 from django.db import models
+from django.conf import settings
+
 from shop.models import Product
 
 
@@ -12,6 +14,7 @@ class Order(models.Model):
     city = models.CharField(max_length=100)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
+    stripe_id = models.CharField(max_length=250, blank=True)
     paid = models.BooleanField(default=False)
 
     class Meta:
@@ -25,6 +28,19 @@ class Order(models.Model):
 
     def get_total_cost(self):
         return sum(item.get_cost() for item in self.items.all())
+    
+    def get_stripe_url(self):
+        """Возвращает урл инф панели страйп для платежа."""
+        if not self.stripe_id:
+            # никаких ассоциированных платежей
+            return ''
+        if '_test_' in settings.STRIPE_SECRET_KEY:
+            # путь Stripe для тестовых платежей
+            path = '/test/'
+        else:
+            # путь Stripe для настоящих платежей
+            path = '/'
+        return f'https://dashboard.stripe.com{path}payments/{self.stripe_id}'
 
 
 class OrderItem(models.Model):
@@ -38,6 +54,7 @@ class OrderItem(models.Model):
     price = models.DecimalField(max_digits=10,
                                 decimal_places=2)
     quantity = models.PositiveIntegerField(default=1)
+
 
     def __str__(self):
         return str(self.id)
