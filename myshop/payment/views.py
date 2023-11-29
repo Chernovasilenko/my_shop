@@ -45,6 +45,15 @@ def payment_process(request):
                     'quantity': item.quantity,
                 }
             )
+        # купон Stripe
+        if order.coupon:
+            stripe_coupon = stripe.Coupon.create(
+                name=order.coupon.code,
+                percent_off=order.discount,
+                duration='once'
+            )
+            session_data['discounts'] = [{'coupon': stripe_coupon.id}]
+        
         # создать сеанс оформления платежа Stripe
         session = stripe.checkout.Session.create(**session_data)
         # перенаправить к платежной форме Stripe
@@ -61,3 +70,4 @@ def payment_completed(request):
 def payment_canceled(request):
     """Заказ отменён."""
     return render(request, 'payment/canceled.html')
+
